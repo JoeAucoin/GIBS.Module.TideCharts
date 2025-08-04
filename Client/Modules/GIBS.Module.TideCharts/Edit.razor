@@ -1,0 +1,401 @@
+@using Oqtane.Modules.Controls
+@using GIBS.Module.TideCharts.Services
+@using GIBS.Module.TideCharts.Models
+@using GIBS.Module.TideCharts.Shared.Models
+
+@namespace GIBS.Module.TideCharts
+@inherits ModuleBase
+@inject ITideChartsService TideChartsService
+@inject NavigationManager NavigationManager
+@inject IStringLocalizer<Edit> Localizer
+@inject ISettingService SettingService
+
+<form @ref="form" class="@(validated ? " was-validated" : "needs-validation")" novalidate>
+    <div class="container">
+        <div class="row mb-1 align-items-center">
+            <Label Class="col-sm-3" For="searchName" HelpText="Enter a Station Name to search" ResourceKey="SearchName">Search Name: </Label>
+            <div class="col-sm-9">
+                <div class="input-group">
+                    <input id="searchName" class="form-control" @bind="@_searchName" />
+                    <button type="button" class="btn btn-primary" @onclick="LookupStation">Lookup Station</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="row mb-1 align-items-center">
+            <div class="col-sm-9 offset-sm-3">
+                @((MarkupString)_substationInfoLink)
+            </div>
+        </div>
+
+        @if (_filteredStations != null && _filteredStations.Any())
+        {
+            <Pager Items="@_filteredStations" PageSize="10" Class="table table-striped table-bordered table-list mt-3">
+                <Header>
+                <th style="width: 1px;">&nbsp;</th>
+                <th>Station Name</th>
+                <th>State</th>
+                <th>ID</th>
+                </Header>
+                <Row>
+                    <td>
+                        <button type="button" class="btn btn-primary btn-sm" @onclick="() => SelectStation(context)">Select</button>
+                    </td>
+                    <td>@context.Name</td>
+                    <td>@context.State</td>
+                    <td>@context.Id</td>
+                </Row>
+            </Pager>
+        }
+
+        <div class="row mb-1 align-items-center">
+            <Label Class="col-sm-3" For="stationName" HelpText="Enter a Station Name" ResourceKey="StationName">Station Name: </Label>
+            <div class="col-sm-9">
+                <input id="stationName" class="form-control" @bind="@_stationName" @oninput="OnStationNameInput" required />
+            </div>
+        </div>
+
+        <div class="row mb-1 align-items-center">
+            <Label Class="col-sm-3" For="stationId" HelpText="Enter a Station ID" ResourceKey="StationId">Station ID: </Label>
+            <div class="col-sm-9">
+                <input id="stationId" class="form-control" @bind="@_stationId" required />
+            </div>
+        </div>
+
+        <div class="row mb-1 align-items-center">
+            <Label Class="col-sm-3" For="state" HelpText="Enter a State" ResourceKey="State">State: </Label>
+            <div class="col-sm-9">
+                <input id="state" class="form-control" @bind="@_state" required />
+            </div>
+        </div>
+        <div class="row mb-1 align-items-center">
+            <Label Class="col-sm-3" For="timeZoneCorrection" HelpText="Enter a Time Zone Correction" ResourceKey="TimeZoneCorrection">Time Zone Correction: </Label>
+            <div class="col-sm-9">
+                <input id="timeZoneCorrection" class="form-control" @bind="@_timeZoneCorrection" required />
+            </div>
+        </div>
+        <div class="row mb-1 align-items-center">
+            <Label Class="col-sm-3" For="latitude" HelpText="Enter a Latitude" ResourceKey="Latitude">Latitude: </Label>
+            <div class="col-sm-9">
+                <input id="latitude" class="form-control" @bind="@_latitude" required />
+            </div>
+        </div>
+        <div class="row mb-1 align-items-center">
+            <Label Class="col-sm-3" For="longitude" HelpText="Enter a Longitude" ResourceKey="Longitude">Longitude: </Label>
+            <div class="col-sm-9">
+                <input id="longitude" class="form-control" @bind="@_longitude" required />
+            </div>
+        </div>
+        <div class="row mb-1 align-items-center">
+            <Label Class="col-sm-3" For="slug" HelpText="Enter a Slug" ResourceKey="Slug">Slug: </Label>
+            <div class="col-sm-9">
+                <input id="slug" class="form-control" @bind="@_slug" required />
+            </div>
+        </div>
+        <div class="row mb-1 align-items-center">
+            <Label Class="col-sm-3" For="isActive" HelpText="Is this TideCharts Active?" ResourceKey="IsActive">Is Active: </Label>
+            <div class="col-sm-9">
+                <input id="isActive" type="checkbox" class="form-check-input" @bind="@_isActive" />
+            </div>
+        </div>
+    </div>
+    <button type="button" class="btn btn-success" @onclick="Save">@Localizer["Save"]</button>
+    <NavLink class="btn btn-secondary" href="@NavigateUrl()">@Localizer["Cancel"]</NavLink>
+    <br /><br />
+    @if (PageState.Action == "Edit")
+    {
+        <AuditInfo CreatedBy="@_createdby" CreatedOn="@_createdon" ModifiedBy="@_modifiedby" ModifiedOn="@_modifiedon"></AuditInfo>
+    }
+</form>
+
+<hr />
+
+@if (_tideChartsList == null)
+{
+    <p><em>@Localizer["Message.Loading"]</em></p>
+}
+else
+{
+    <Pager Items="@_tideChartsList" PageSize="10" Class="table table-striped table-bordered table-list">
+        <Header>
+        <th style="width: 1px;">&nbsp;</th>
+        <th style="width: 1px;">&nbsp;</th>
+        <th>@Localizer["StationName"]</th>
+        <th>@Localizer["StationId"]</th>
+        <th>@Localizer["State"]</th>
+        <th>@Localizer["TimeZoneCorrection"]</th>
+        <th>@Localizer["Latitude"]</th>
+        <th>@Localizer["Longitude"]</th>
+        <th>@Localizer["Slug"]</th>
+        <th>@Localizer["IsActive"]</th>
+        </Header>
+        <Row>
+            <td><ActionLink Action="Edit" Parameters="@($"id=" + context.TideChartsId.ToString())" ResourceKey="Edit" /></td>
+            <td><ActionDialog Header="Delete Tide Chart" Message="Are You Sure You Wish To Delete This Tide Chart Station?" Action="Delete" Security="SecurityAccessLevel.Edit" Class="btn btn-danger" OnClick="@(async () => await DeleteTideChart(context))" ResourceKey="Delete" Id="@context.TideChartsId.ToString()" /></td>
+            <td>@context.StationName</td>
+            <td>@context.StationId</td>
+            <td>@context.State</td>
+            <td>@context.TimeZoneCorrection</td>
+            <td>@context.Latitude</td>
+            <td>@context.Longitude</td>
+            <td>@context.Slug</td>
+            <td>@context.IsActive</td>
+        </Row>
+    </Pager>
+}
+
+
+@code {
+
+    public override SecurityAccessLevel SecurityAccessLevel => SecurityAccessLevel.Edit;
+
+    public override string Actions => "Add,Edit";
+
+    public override string Title => "Manage TideCharts";
+
+    public override List<Resource> Resources => new List<Resource>()
+    {
+        new Resource { ResourceType = ResourceType.Stylesheet, Url = ModulePath() + "Module.css" }
+    };
+
+    private ElementReference form;
+    private bool validated = false;
+
+    private int _id;
+    private string _stationName;
+    private string _searchName;
+    private string _stationId;
+    private string _timeZoneCorrection = "-5";
+    private double _latitude;
+    private double _longitude;
+    private string _slug;
+    private string _state;
+    private bool _isActive;
+    private string _createdby;
+    private DateTime _createdon;
+    private string _modifiedby;
+    private DateTime _modifiedon;
+    private string _substationInfoLink = "<a href=\"https://tidesandcurrents.noaa.gov/tide_predictions.html?gid=1403\" target=\"_blank\" class=\"btn btn-sm btn-primary\">Substation location information</a>";
+
+
+    private List<NOAAStation> _allStations;
+    private List<NOAAStation> _filteredStations;
+    private List<TideCharts> _tideChartsList;
+
+    private string _myModuleTitle = "Tide Chart";
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _myModuleTitle = SettingService.GetSetting(ModuleState.Settings, "MyModuleTitle", "Tide Chart");
+            // Pre-load all stations for client-side filtering
+            _allStations = await TideChartsService.GetNOAAStationsAsync();
+            _tideChartsList = await TideChartsService.GetTideChartssAsync(ModuleState.ModuleId);
+
+            if (PageState.Action == "Edit")
+            {
+                _id = Int32.Parse(PageState.QueryString["id"]);
+                TideCharts TideCharts = await TideChartsService.GetTideChartsAsync(_id, ModuleState.ModuleId);
+                if (TideCharts != null)
+                {
+                    _stationName = TideCharts.StationName;
+                    _stationId = TideCharts.StationId;
+                    _timeZoneCorrection = TideCharts.TimeZoneCorrection;
+                    _latitude = TideCharts.Latitude;
+                    _longitude = TideCharts.Longitude;
+                    _slug = TideCharts.Slug;
+                    _state = TideCharts.State;
+                    _isActive = TideCharts.IsActive;
+                    _createdby = TideCharts.CreatedBy;
+                    _createdon = TideCharts.CreatedOn;
+                    _modifiedby = TideCharts.ModifiedBy;
+                    _modifiedon = TideCharts.ModifiedOn;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            await logger.LogError(ex, "Error Loading TideCharts {TideChartsId} {Error}", _id, ex.Message);
+            AddModuleMessage(Localizer["Message.LoadError"], MessageType.Error);
+        }
+    }
+
+    private void LookupStation()
+    {
+        _filteredStations = null;
+        if (string.IsNullOrWhiteSpace(_searchName) || _allStations == null)
+        {
+            AddModuleMessage("Please enter a search term.", MessageType.Warning);
+            return;
+        }
+
+        var stations = _allStations
+            .Where(s => s.Name.Contains(_searchName, StringComparison.OrdinalIgnoreCase))
+            .OrderBy(s => s.Name)
+            .ToList();
+
+        if (stations.Count == 0)
+        {
+            AddModuleMessage("No stations found matching your search.", MessageType.Warning);
+        }
+        else if (stations.Count == 1)
+        {
+            var station = stations.First();
+            PopulateStationFields(station);
+            AddModuleMessage($"Found '{station.Name}, {station.State}' and auto-filled details.", MessageType.Success);
+        }
+        else
+        {
+            _filteredStations = stations;
+            AddModuleMessage($"{stations.Count} stations found. Please select one.", MessageType.Info);
+        }
+    }
+
+    private void SelectStation(NOAAStation station)
+    {
+        if (station != null)
+        {
+            PopulateStationFields(station);
+            AddModuleMessage($"Station '{station.Name}, {station.State}' details loaded.", MessageType.Success);
+            _filteredStations = null; // Hide pager after selection
+        }
+    }
+
+    private void PopulateStationFields(NOAAStation station)
+    {
+        _stationId = station.Id;
+        _stationName = station.Name;
+        _state = station.State;
+        _timeZoneCorrection = station.Timezonecorr.ToString();
+        _latitude = station.Lat;
+        _longitude = station.Lng;
+        _slug = ToUrlSlug(station.Name);
+    }
+
+    private string ToUrlSlug(string value)
+    {
+        if (string.IsNullOrEmpty(value)) return "";
+        // This is a simplified version. Consider a more robust slug generation library if needed.
+        return System.Text.RegularExpressions.Regex.Replace(value.ToLower(), @"[^a-z0-9\s-]", "")
+            .Replace(' ', '-')
+            .Trim('-');
+    }
+
+    private async Task Save()
+    {
+        try
+        {
+            validated = true;
+            var interop = new Oqtane.UI.Interop(JSRuntime);
+            if (await interop.FormValid(form))
+            {
+                if (PageState.Action == "Add")
+                {
+                    TideCharts TideCharts = new TideCharts();
+                    TideCharts.ModuleId = ModuleState.ModuleId;
+                    TideCharts.StationName = _stationName;
+
+                    TideCharts.StationId = _stationId;
+                    TideCharts.TimeZoneCorrection = _timeZoneCorrection;
+                    TideCharts.Latitude = _latitude;
+                    TideCharts.Longitude = _longitude;
+                    TideCharts.Slug = _slug;
+                    TideCharts.State = _state;
+
+                    TideCharts.IsActive = _isActive;
+                    TideCharts = await TideChartsService.AddTideChartsAsync(TideCharts);
+                    await logger.LogInformation("TideCharts Added {TideCharts}", TideCharts);
+                }
+                else
+                {
+                    TideCharts TideCharts = await TideChartsService.GetTideChartsAsync(_id, ModuleState.ModuleId);
+                    TideCharts.StationName = _stationName;
+                    TideCharts.StationId = _stationId;
+                    TideCharts.TimeZoneCorrection = _timeZoneCorrection;
+                    TideCharts.Latitude = _latitude;
+                    TideCharts.Longitude = _longitude;
+                    TideCharts.Slug = _slug;
+                    TideCharts.State = _state;
+
+                    TideCharts.IsActive = _isActive;
+                    await TideChartsService.UpdateTideChartsAsync(TideCharts);
+                    await logger.LogInformation("TideCharts Updated {TideCharts}", TideCharts);
+                }
+                //NavigationManager.NavigateTo(NavigateUrl());
+                ClearForm(); 
+                _tideChartsList = await TideChartsService.GetTideChartssAsync(ModuleState.ModuleId);
+                StateHasChanged();
+            }
+            else
+            {
+                AddModuleMessage(Localizer["Message.SaveValidation"], MessageType.Warning);
+            }
+        }
+        catch (Exception ex)
+        {
+            await logger.LogError(ex, "Error Saving TideCharts {Error}", ex.Message);
+            AddModuleMessage(Localizer["Message.SaveError"], MessageType.Error);
+        }
+    }
+
+    private void ClearForm()
+    {
+        validated = false;
+        _id = 0;
+        _stationName = "";
+        _searchName = "";
+        _stationId = "";
+        _timeZoneCorrection = "-5";
+        _latitude = 0;
+        _longitude = 0;
+        _slug = "";
+        _state = "MA";
+        _isActive = false;
+        _createdby = string.Empty;
+        _createdon = default;
+        _modifiedby = string.Empty;
+        _modifiedon = default;
+        PageState.Action = "Add";
+        
+
+    }
+
+    private async Task DeleteTideChart(TideCharts tideChart)
+    {
+        try
+        {
+            await TideChartsService.DeleteTideChartsAsync(tideChart.TideChartsId, ModuleState.ModuleId);
+            await logger.LogInformation("TideChart Deleted {TideChart}", tideChart);
+            AddModuleMessage("Tide Chart Deleted", MessageType.Success);
+            _tideChartsList = await TideChartsService.GetTideChartssAsync(ModuleState.ModuleId);
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            await logger.LogError(ex, "Error Deleting TideChart {TideChart} {Error}", tideChart, ex.Message);
+            AddModuleMessage(Localizer["Message.DeleteError"], MessageType.Error);
+        }
+    }
+
+    private void OnStationNameInput(ChangeEventArgs e)
+    {
+        var value = e.Value?.ToString() ?? "";
+        _stationName = value;
+        _slug = GenerateSlug(value + " " + _state + " " + _myModuleTitle.ToString());
+    }
+
+    private string GenerateSlug(string input)
+    {
+        if (string.IsNullOrWhiteSpace(input)) return "";
+        // Convert to lower, replace spaces with '-', allow a-z and 0-9, remove other chars
+        var slug = new string(input.ToLower().Select(c =>
+            (c >= 'a' && c <= 'z') || (c >= '0' && c <= '9') ? c :
+            (c == ' ' ? '-' : '\0')).Where(c => c != '\0').ToArray());
+        // Replace multiple dashes with single dash
+        slug = System.Text.RegularExpressions.Regex.Replace(slug, "-+", "-");
+        // Trim dashes
+        slug = slug.Trim('-');
+        return slug;
+    }
+}

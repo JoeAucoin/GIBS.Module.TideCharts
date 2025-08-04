@@ -1,0 +1,38 @@
+<Project Sdk="Microsoft.NET.Sdk.Razor">
+
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <Version>1.0.0</Version>
+    <Authors>GIBS</Authors>
+    <Company>GIBS</Company>
+    <Description>Tide Charts Module for Oqtane</Description>
+    <Product>GIBS.Module.TideCharts</Product>
+    <Copyright>GIBS</Copyright>
+    <AssemblyName>GIBS.Module.TideCharts.Client.Oqtane</AssemblyName>
+    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="9.0.4" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Authentication" Version="9.0.4" />
+    <PackageReference Include="Microsoft.Extensions.Localization" Version="9.0.4" />
+    <PackageReference Include="Microsoft.Extensions.Http" Version="9.0.4" />
+    <PackageReference Include="System.Net.Http.Json" Version="9.0.4" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Shared\GIBS.Module.TideCharts.Shared.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="Oqtane.Client"><HintPath>..\..\oqtane.framework-6.1.2-Source\Oqtane.Server\bin\Debug\net9.0\Oqtane.Client.dll</HintPath></Reference>
+    <Reference Include="Oqtane.Shared"><HintPath>..\..\oqtane.framework-6.1.2-Source\Oqtane.Server\bin\Debug\net9.0\Oqtane.Shared.dll</HintPath></Reference>
+  </ItemGroup>
+
+  <PropertyGroup>
+    <!-- there may be other elements here -->
+    <BlazorWebAssemblyEnableLinking>false</BlazorWebAssemblyEnableLinking>
+    <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
+  </PropertyGroup>
+
+</Project>

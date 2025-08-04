@@ -1,0 +1,36 @@
+<Project Sdk="Microsoft.NET.Sdk.Razor">
+
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <AddRazorSupportForMvc>true</AddRazorSupportForMvc>
+    <Version>1.0.0</Version>
+    <Product>GIBS.Module.TideCharts</Product>
+    <Authors>GIBS</Authors>
+    <Company>GIBS</Company>
+    <Description>Tide Charts Module for Oqtane</Description>
+    <Copyright>GIBS</Copyright>
+    <AssemblyName>GIBS.Module.TideCharts.Server.Oqtane</AssemblyName>
+    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Content Remove="wwwroot\_content\**\*.*" />
+    <None Include="wwwroot\_content\**\*.*" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Server" Version="9.0.4" />
+    <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="9.0.4" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="9.0.4" />
+    <PackageReference Include="Microsoft.Extensions.Localization" Version="9.0.4" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Shared\GIBS.Module.TideCharts.Shared.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="Oqtane.Server"><HintPath>..\..\oqtane.framework-6.1.2-Source\Oqtane.Server\bin\Debug\net9.0\Oqtane.Server.dll</HintPath></Reference>
+    <Reference Include="Oqtane.Shared"><HintPath>..\..\oqtane.framework-6.1.2-Source\Oqtane.Server\bin\Debug\net9.0\Oqtane.Shared.dll</HintPath></Reference>
+  </ItemGroup>
+</Project>

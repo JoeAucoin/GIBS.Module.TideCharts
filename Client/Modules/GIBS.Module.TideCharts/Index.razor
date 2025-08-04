@@ -1,0 +1,347 @@
+@using System.Linq
+@using System.Text.Json
+@using GIBS.Module.TideCharts.Services
+@using GIBS.Module.TideCharts.Models
+@using GIBS.Module.TideCharts.Shared.Models
+@using Oqtane.Shared
+@using Oqtane.Services
+@using System.Timers
+
+@namespace GIBS.Module.TideCharts
+@inherits ModuleBase
+@implements IDisposable
+@inject ITideChartsService TideChartsService
+@inject NavigationManager NavigationManager
+@inject IStringLocalizer<Index> Localizer
+@inject ISettingService SettingService
+
+
+
+<div class="container">
+    <div class="row ">
+
+        <div class="col-md-9">
+            @if (_activeStation == null)
+            {
+                <div class="alert alert-info">Please select a station from the list to view the tide report.</div>
+            }
+            else if (_predictions == null)
+            {
+                <p><em>Loading Tide Report for @_activeStation.StationName...</em></p>
+            }
+            else
+            {
+                <div class="station-details-container" style="display: flex; flex-wrap: wrap; align-items: flex-start; margin-bottom: 20px;">
+                    <div class="station-info" style="flex: 1; min-width: 300px; padding-right: 20px;">
+                        <h3>@_activeStation.StationName, @_activeStation.State @_myModuleTitle</h3>
+                        <p>
+                            <strong>Station ID:</strong> @_activeStation.StationId<br />
+                            <strong>Coordinates:</strong> @_activeStation.Latitude, @_activeStation.Longitude<br />
+                            <strong>Time Zone:</strong> LST/LDT
+                        </p>
+                        <h4 style="text-align:center;">Tide Predictions<br />(@_dateRange)</h4>
+                        <h5 style="text-align:center;">@_currentDateTime</h5>
+                    </div>
+                    <div id="tideMap-@ModuleState.ModuleId" style="flex: 1; min-width: 300px; height: 300px; border: 1px solid #ccc; background-color: #f0f0f0;"></div>
+                </div>
+
+                @if (_showLineChart)
+                {
+                    <div class="chart-container" style="height:440px; width:100%; margin-bottom: 40px; margin-top:20px;">
+                        <h3>Tide Levels</h3>
+                        <canvas id="tideLineChart-@ModuleState.ModuleId" style="height:400px; width:100%;"></canvas>
+                    </div>
+                }
+
+                @if (_showBarChart)
+                {
+                    <div class="chart-container" style="height:440px; width:100%; margin-bottom: 40px; margin-top:20px;">
+                        <h3>Tide Levels</h3>
+                        <canvas id="tideBarChart-@ModuleState.ModuleId" style="height:400px; width:100%;"></canvas>
+                    </div>
+                }
+
+                @if (_showGridView && _predictions.Any())
+                {
+                    <div class="panel panel-default">
+                        <div class="panel-heading" role="tab" id="headingTidePredictions-@ModuleState.ModuleId">
+                            <h4 class="panel-title">
+                                <a role="button" data-bs-toggle="collapse" href="#collapseTidePredictions-@ModuleState.ModuleId" aria-expanded="true" aria-controls="collapseTidePredictions-@ModuleState.ModuleId">
+                                    <span class="arrow">&#9660;</span> @_activeStation.StationName: Tide Prediction Details
+                                </a>
+                            </h4>
+                        </div>
+                        <div id="collapseTidePredictions-@ModuleState.ModuleId" class="panel-collapse collapse show" role="tabpanel" aria-labelledby="headingTidePredictions-@ModuleState.ModuleId">
+                            <div class="panel-body">
+                                <Pager Items="@_predictions" PageSize="15">
+                                    <Header>
+                                    <th>Tide</th>
+                                    <th>Day/Date/Time (LST/LDT)</th>
+                                    <th style="text-align:center;">Prediction (Feet)</th>
+                                    </Header>
+                                    <Row>
+                                        <td>@(context.Type == "H" ? "High Tide" : "Low Tide")</td>
+                                        <td>@context.PredictedDateTime.ToString("dddd MM/dd/yyyy hh:mm tt")</td>
+                                        <td style="text-align:center;">@context.PredictedValue.ToString("F2")</td>
+                                    </Row>
+                                </Pager>
+                            </div>
+                        </div>
+                    </div>
+                }
+
+                <div class="tcCredits" style="text-align:center; margin-top:20px;"><cite>Tide data provided by <a href="https://tidesandcurrents.noaa.gov/" target="_blank">NOAA</a></cite></div>
+            }
+        </div>
+
+        <div class="col-md-3">
+
+            @if (_TideChartss == null)
+            {
+                <p><em>Loading...</em></p>
+            }
+            else
+            {
+                <ActionLink Action="Add" Security="SecurityAccessLevel.Edit" Text="Add TideCharts" ResourceKey="Add" />
+                <br />
+                <br />
+                @if (@_TideChartss.Count != 0)
+                {
+                    <Pager Items="@_TideChartss" PageSize="25">
+                        <Header>
+                        <th style="width: 1px;">&nbsp;</th>
+                        <th style="width: 1px;">&nbsp;</th>
+                        <th>@Localizer["StationName"]</th>
+                        </Header>
+                        <Row>
+                            <td><ActionLink Action="Edit" IconName="pencil" IconOnly Parameters="@($"id=" + context.TideChartsId.ToString())" ResourceKey="Edit" /></td>
+                            <td><ActionDialog Header="Delete TideCharts" IconName="delete" IconOnly Message="Are You Sure You Wish To Delete This TideCharts?" Action="Delete" Security="SecurityAccessLevel.Edit" Class="btn btn-danger" OnClick="@(async () => await Delete(context))" ResourceKey="Delete" Id="@context.TideChartsId.ToString()" /></td>
+                            <td><a href="@NavigateUrl(PageState.Page.Path, $"id={@context.TideChartsId}&details={@context.Slug}#top")">@context.StationName</a></td>
+                        </Row>
+                    </Pager>
+                }
+                else
+                {
+                    <p>@Localizer["Message.DisplayNone"]</p>
+                }
+            }
+
+        </div>
+
+    </div>
+</div>
+
+
+@code {
+    public override string RenderMode => RenderModes.Interactive;
+
+    public override List<Resource> Resources
+    {
+        get
+        {
+            string leafletJsPath = ModulePath() + "leaflet.js";
+            string moduleJsPath = ModulePath() + "Module.js";
+            string leafletCSS = ModulePath() + "leaflet.css";
+            string moduleCSS = ModulePath() + "Module.css";
+
+            return new List<Resource>
+            {
+                 new Resource { ResourceType = ResourceType.Stylesheet, Url = leafletCSS } ,
+                  new Resource { ResourceType = ResourceType.Stylesheet, Url = moduleCSS },
+                new Resource { ResourceType = ResourceType.Script, Url = "https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js" },
+                new Resource { ResourceType = ResourceType.Script, Url = leafletJsPath },
+                new Resource { ResourceType = ResourceType.Script, Url = moduleJsPath,  Location = ResourceLocation.Body  }
+            };
+        }
+    }
+
+    private List<TideCharts> _TideChartss;
+    private TideCharts _activeStation;
+    private List<Prediction> _predictions;
+    private string _dateRange;
+    private bool _jsInitialized = false;
+    private string _currentDateTime;
+    private System.Timers.Timer _timer;
+
+    // Settings with default values
+    private int _numberOfDays = 7;
+    private int _mapZoom = 13;
+    private bool _showLineChart = true;
+    private bool _showBarChart = false;
+    private bool _showGridView = true;
+    private string _myModuleTitle = "Tide Chart";
+
+    protected override void OnInitialized()
+    {
+        _currentDateTime = DateTime.Now.ToString("dddd hh:mm:ss tt");
+        _timer = new System.Timers.Timer(1000);
+        _timer.Elapsed += OnTimerElapsed;
+        _timer.AutoReset = true;
+        _timer.Enabled = true;
+    }
+
+    private void OnTimerElapsed(object source, ElapsedEventArgs e)
+    {
+        _currentDateTime = DateTime.Now.ToString("dddd hh:mm:ss tt");
+        InvokeAsync(StateHasChanged);
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        try
+        {
+            LoadSettings(); // Load settings on each parameter change
+
+            if (_TideChartss == null)
+            {
+                _TideChartss = await TideChartsService.GetTideChartssAsync(ModuleState.ModuleId);
+            }
+
+            TideCharts stationToSelect = null;
+
+            // Prioritize loading from query string
+            if (PageState.QueryString.ContainsKey("id") && int.TryParse(PageState.QueryString["id"], out int tideChartsId))
+            {
+                stationToSelect = _TideChartss?.FirstOrDefault(s => s.TideChartsId == tideChartsId);
+            }
+            else if (PageState.QueryString.ContainsKey("details"))
+            {
+                var slug = PageState.QueryString["details"];
+                stationToSelect = _TideChartss?.FirstOrDefault(s => s.Slug == slug);
+            }
+
+            // If no station is selected from query string, fall back to the active one
+            if (stationToSelect == null)
+            {
+                stationToSelect = _TideChartss?.FirstOrDefault(s => s.IsActive);
+            }
+
+            // If a station is found (and it's different from the current one), load its data
+            if (stationToSelect != null && stationToSelect.TideChartsId != _activeStation?.TideChartsId)
+            {
+                await SelectStation(stationToSelect);
+            }
+            else if (stationToSelect == null)
+            {
+                _activeStation = null;
+                _predictions = null;
+            }
+
+        }
+        catch (Exception ex)
+        {
+            await logger.LogError(ex, "Error Loading TideCharts {Error}", ex.Message);
+            AddModuleMessage(Localizer["Message.LoadError"], MessageType.Error);
+        }
+    }
+
+    private void LoadSettings()
+    {
+        _numberOfDays = int.Parse(SettingService.GetSetting(ModuleState.Settings, "NumberOfTideDays", "7"));
+        _mapZoom = int.Parse(SettingService.GetSetting(ModuleState.Settings, "MapZoomLevel", "13"));
+        _showLineChart = bool.Parse(SettingService.GetSetting(ModuleState.Settings, "ShowLineChart", "true"));
+        _showBarChart = bool.Parse(SettingService.GetSetting(ModuleState.Settings, "ShowBarChart", "false"));
+        _showGridView = bool.Parse(SettingService.GetSetting(ModuleState.Settings, "ShowGrid", "true"));
+        _myModuleTitle = SettingService.GetSetting(ModuleState.Settings, "MyModuleTitle", " Tide Chart");
+    }
+
+    private async Task SelectStation(TideCharts station)
+    {
+        _jsInitialized = false;
+        _activeStation = station;
+        _predictions = null;
+
+        StateHasChanged(); // Trigger a re-render to show the "Loading..." message
+
+        try
+        {
+            _predictions = await TideChartsService.GetTidePredictionsAsync(_activeStation.StationId, _numberOfDays);
+            DateTime startDate = DateTime.Today;
+            DateTime endDate = startDate.AddDays(_numberOfDays);
+            _dateRange = $"{startDate:MM/dd/yyyy} - {endDate:MM/dd/yyyy}";
+        }
+        catch (Exception ex)
+        {
+            await logger.LogError(ex, "Error Loading Tide Predictions For Station {StationId} {Error}", _activeStation.StationId, ex.Message);
+            AddModuleMessage(Localizer["Message.LoadError"], MessageType.Error);
+        }
+        StateHasChanged(); // Trigger a final re-render with the prediction data
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (_activeStation != null && _predictions != null && !_jsInitialized)
+        {
+            _jsInitialized = true; // Set flag to prevent re-running
+            try
+            {
+                // Set the page title directly using JS Interop
+                var pageTitle = $"{_activeStation.StationName} {_myModuleTitle}";
+                await JSRuntime.InvokeVoidAsync("GIBS.TideCharts.setDocumentTitle", pageTitle);
+
+                await JSRuntime.InvokeVoidAsync("GIBS.TideCharts.initMap",
+                    $"tideMap-{ModuleState.ModuleId}",
+                    _activeStation.Latitude,
+                    _activeStation.Longitude,
+                    _mapZoom,
+                    _activeStation.StationName,
+                    ModulePath());
+
+                var chartData = _predictions.OrderBy(p => p.PredictedDateTime).Select(p => new
+                {
+                    label = p.PredictedDateTime.ToString("ddd hh:mm tt"),
+                    fullDate = p.PredictedDateTime.ToString("ddd M/dd hh:mm tt"),
+                    value = p.PredictedValue,
+                    type = p.Type
+                }).ToList();
+
+                if (_showLineChart)
+                {
+                    await JSRuntime.InvokeVoidAsync("GIBS.TideCharts.initChart",
+                        $"tideLineChart-{ModuleState.ModuleId}",
+                        "line",
+                        JsonSerializer.Serialize(chartData));
+                }
+
+                if (_showBarChart)
+                {
+                    await JSRuntime.InvokeVoidAsync("GIBS.TideCharts.initChart",
+                        $"tideBarChart-{ModuleState.ModuleId}",
+                        "bar",
+                        JsonSerializer.Serialize(chartData));
+                }
+            }
+            catch (Exception ex)
+            {
+                await logger.LogError(ex, "Error Initializing Charts/Map {Error}", ex.Message);
+            }
+        }
+    }
+
+    private async Task Delete(TideCharts TideCharts)
+    {
+        try
+        {
+            await TideChartsService.DeleteTideChartsAsync(TideCharts.TideChartsId, ModuleState.ModuleId);
+            await logger.LogInformation("TideCharts Deleted {TideCharts}", TideCharts);
+            if (_activeStation?.TideChartsId == TideCharts.TideChartsId)
+            {
+                _activeStation = null;
+                _predictions = null;
+            }
+            _TideChartss = await TideChartsService.GetTideChartssAsync(ModuleState.ModuleId);
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            await logger.LogError(ex, "Error Deleting TideCharts {TideCharts} {Error}", TideCharts, ex.Message);
+            AddModuleMessage(Localizer["Message.DeleteError"], MessageType.Error);
+        }
+    }
+
+    public void Dispose()
+    {
+        _timer?.Stop();
+        _timer?.Dispose();
+    }
+}

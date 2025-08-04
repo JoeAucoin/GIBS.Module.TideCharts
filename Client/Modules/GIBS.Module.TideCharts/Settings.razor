@@ -1,0 +1,114 @@
+@namespace GIBS.Module.TideCharts
+@inherits ModuleBase
+@inject ISettingService SettingService
+@inject IStringLocalizer<Settings> Localizer
+
+<div class="container">
+    <div class="row mb-1 align-items-center">
+        <Label Class="col-sm-3" For="moduleTitle" HelpText="Enter a value for ModuleTitle" ResourceKey="MyModuleTitle" ResourceType="@resourceType">Module Title: </Label>
+            <div class="col-sm-9">
+            <input id="moduleTitle" type="text" class="form-control" @bind="@_moduleTitle" />
+            </div>
+    </div>
+</div>
+
+<div class="row mb-1 align-items-center">
+    <Label Class="col-sm-3" For="mapZoom" HelpText="Select the map zoom level." ResourceKey="MapZoom" ResourceType="@resourceType">Map Zoom Level: </Label>
+    <div class="col-sm-9">
+        <select id="mapZoom" class="form-select" @bind="@_mapZoomLevel">
+            <option value="">-- Select Map Zoom --</option>
+
+            @for (var i = 1; i <= 18; i++)
+            {
+                <option value="@i">@i</option>
+            }
+
+        </select>
+    </div>
+</div>
+
+<div class="row mb-1 align-items-center">
+    <Label Class="col-sm-3" For="numberOfTideDays" HelpText="Select Number Of Tide Days." ResourceKey="NumberOfTideDays" ResourceType="@resourceType">Number Of Tide Days: </Label>
+    <div class="col-sm-9">
+        <select id="mapZoom" class="form-select" @bind="@_numberOfTideDays">
+            <option value="">-- Select Number Of Tide Days --</option>
+
+            @for (var i = 1; i <= 30; i++)
+            {
+                <option value="@i">@i</option>
+            }
+
+        </select>
+    </div>
+</div>
+
+<div class="row mb-1 align-items-center">
+    <Label Class="col-sm-3" For="showLineChart" HelpText="Show Line Chart" ResourceKey="ShowLineChart" ResourceType="@resourceType">Show Line Chart: </Label>
+    <div class="col-sm-9">
+        <input type="checkbox" id="showLineChart" class="form-check-input" @bind="@_showLineChart" />
+    </div>
+</div>
+<div class="row mb-1 align-items-center">
+    <Label Class="col-sm-3" For="showBarChart" HelpText="Show Bar Chart" ResourceKey="ShowBarChart" ResourceType="@resourceType">Show Bar Chart: </Label>
+    <div class="col-sm-9">
+        <input type="checkbox" id="showBarChart" class="form-check-input" @bind="@_showBarChart" />
+    </div>
+</div>
+<div class="row mb-1 align-items-center">
+    <Label Class="col-sm-3" For="showGrid" HelpText="Show Phone field" ResourceKey="ShowGrid" ResourceType="@resourceType">Show Grid: </Label>
+    <div class="col-sm-9">
+        <input type="checkbox" id="showGrid" class="form-check-input" @bind="@_showGrid" />
+    </div>
+</div>
+
+
+@code {
+    private string resourceType = "GIBS.Module.TideCharts.Settings, GIBS.Module.TideCharts.Client.Oqtane"; // for localization
+    public override string Title => "TideCharts Settings";
+
+    private string _moduleTitle;
+    private string _mapZoomLevel = "12";
+    private string _numberOfTideDays = "7"; // Default 
+    private bool _showLineChart;
+    private bool _showBarChart;
+    private bool _showGrid;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            
+            Dictionary<string, string> settings = await SettingService.GetModuleSettingsAsync(ModuleState.ModuleId);
+            _moduleTitle = SettingService.GetSetting(settings, "MyModuleTitle", "");
+            _mapZoomLevel = SettingService.GetSetting(settings, "MapZoomLevel", "12");
+            _numberOfTideDays = SettingService.GetSetting(settings, "NumberOfTideDays", "7");
+            _showLineChart = SettingService.GetSetting(settings, "ShowLineChart", "true") == "true";
+            _showBarChart = SettingService.GetSetting(settings, "ShowBarChart", "true") == "true";
+            _showGrid = SettingService.GetSetting(settings, "ShowGrid", "true") == "true";
+
+        }
+        catch (Exception ex)
+        {
+            AddModuleMessage(ex.Message, MessageType.Error);
+        }
+    }
+
+    public async Task UpdateSettings()
+    {
+        try
+        {
+            Dictionary<string, string> settings = await SettingService.GetModuleSettingsAsync(ModuleState.ModuleId);
+            SettingService.SetSetting(settings, "MyModuleTitle", _moduleTitle);
+            SettingService.SetSetting(settings, "MapZoomLevel", _mapZoomLevel);
+            SettingService.SetSetting(settings, "NumberOfTideDays", _numberOfTideDays);
+            SettingService.SetSetting(settings, "ShowLineChart", _showLineChart.ToString().ToLower());
+            SettingService.SetSetting(settings, "ShowBarChart", _showBarChart.ToString().ToLower());
+            SettingService.SetSetting(settings, "ShowGrid", _showGrid.ToString().ToLower());
+            await SettingService.UpdateModuleSettingsAsync(settings, ModuleState.ModuleId);
+        }
+        catch (Exception ex)
+        {
+            AddModuleMessage(ex.Message, MessageType.Error);
+        }
+    }
+}
