@@ -133,6 +133,7 @@
 
 
 @code {
+    // public override string RenderMode => RenderModes.Static;
     public override string RenderMode => RenderModes.Interactive;
 
     public override List<Resource> Resources
@@ -270,8 +271,12 @@
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
+        
+        await base.OnAfterRenderAsync(firstRender);
+        
         if (_activeStation != null && _predictions != null && !_jsInitialized)
         {
+            
             _jsInitialized = true; // Set flag to prevent re-running
             try
             {
