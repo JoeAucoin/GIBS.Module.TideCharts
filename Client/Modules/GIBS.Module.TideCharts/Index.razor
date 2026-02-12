@@ -150,9 +150,9 @@
             {
                  new Resource { ResourceType = ResourceType.Stylesheet, Url = leafletCSS } ,
                   new Resource { ResourceType = ResourceType.Stylesheet, Url = moduleCSS },
-                new Resource { ResourceType = ResourceType.Script, Url = "https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js" },
-                new Resource { ResourceType = ResourceType.Script, Url = leafletJsPath },
-                new Resource { ResourceType = ResourceType.Script, Url = moduleJsPath,  Location = ResourceLocation.Body  }
+                new Resource { ResourceType = ResourceType.Script, Level = ResourceLevel.Site, Url = "https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js" },
+                new Resource { ResourceType = ResourceType.Script, Level = ResourceLevel.Site, Url = leafletJsPath },
+                new Resource { ResourceType = ResourceType.Script, Level = ResourceLevel.Site, Url = moduleJsPath,  Location = ResourceLocation.Body  }
             };
         }
     }
