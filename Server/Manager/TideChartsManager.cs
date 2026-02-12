@@ -16,7 +16,7 @@ using System.Threading.Tasks;
 
 namespace GIBS.Module.TideCharts.Manager
 {
-    public class TideChartsManager : MigratableModuleBase, IInstallable, IPortable, ISearchable
+    public class TideChartsManager : MigratableModuleBase, IInstallable, IPortable, ISearchable, ISitemap
     {
         private readonly ITideChartsRepository _TideChartsRepository;
         private readonly IDBContextDependencies _DBContextDependencies;
@@ -28,6 +28,29 @@ namespace GIBS.Module.TideCharts.Manager
             _TideChartsRepository = TideChartsRepository;
             _DBContextDependencies = DBContextDependencies;
             _httpClientFactory = httpClientFactory;
+        }
+
+        public List<Sitemap> GetUrls(string alias, string path, Oqtane.Models.Module module)
+        {
+            var sitemapUrls = new List<Sitemap>();
+            var tideCharts = _TideChartsRepository.GetTideChartss(module.ModuleId);
+            
+
+            // 1. Fetch your custom module data (e.g., from a repository)
+            // 2. Loop through your items and create Sitemap objects
+            // 3. Example of adding a dynamic detail page:
+
+            foreach (var chart in tideCharts)
+            {
+
+                sitemapUrls.Add(new Sitemap
+                {
+                    Url = $"{alias}/{path}?id={chart.TideChartsId}&details={chart.Slug}", // Construct the full URL
+                    ModifiedOn = DateTime.UtcNow
+                });
+            }
+
+            return sitemapUrls;
         }
 
         public bool Install(Tenant tenant, string version)

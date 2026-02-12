@@ -6,6 +6,7 @@
 @using Oqtane.Shared
 @using Oqtane.Services
 @using System.Timers
+@using System.Net
 
 @namespace GIBS.Module.TideCharts
 @inherits ModuleBase
@@ -179,6 +180,7 @@
         _timer.Elapsed += OnTimerElapsed;
         _timer.AutoReset = true;
         _timer.Enabled = true;
+
     }
 
     private void OnTimerElapsed(object source, ElapsedEventArgs e)
@@ -198,6 +200,7 @@
                 _TideChartss = await TideChartsService.GetTideChartssAsync(ModuleState.ModuleId);
             }
 
+        
             TideCharts stationToSelect = null;
 
             // Prioritize loading from query string
