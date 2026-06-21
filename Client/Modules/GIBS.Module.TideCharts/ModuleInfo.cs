@@ -9,9 +9,9 @@ namespace GIBS.Module.TideCharts
         {
             Name = "TideCharts",
             Description = "Tide Charts Module for Oqtane",
-            Version = "1.0.0",
+            Version = "1.0.1",
             ServerManagerType = "GIBS.Module.TideCharts.Manager.TideChartsManager, GIBS.Module.TideCharts.Server.Oqtane",
-            ReleaseVersions = "1.0.0",
+            ReleaseVersions = "1.0.0,1.0.1",
             Dependencies = "GIBS.Module.TideCharts.Shared.Oqtane",
             PackageName = "GIBS.Module.TideCharts" 
         };

@@ -1,8 +1,8 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>    
-    <Version>1.0.0</Version>
+    <Version>1.0.1</Version>
     <Product>GIBS.Module.TideCharts</Product>
     <Authors>GIBS</Authors>
     <Company>GIBS</Company>

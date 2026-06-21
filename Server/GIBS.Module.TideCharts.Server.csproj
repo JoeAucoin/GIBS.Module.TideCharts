@@ -1,9 +1,9 @@
-<Project Sdk="Microsoft.NET.Sdk.Razor">
+﻿<Project Sdk="Microsoft.NET.Sdk.Razor">
 
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
     <AddRazorSupportForMvc>true</AddRazorSupportForMvc>
-    <Version>1.0.0</Version>
+    <Version>1.0.1</Version>
     <Product>GIBS.Module.TideCharts</Product>
     <Authors>GIBS</Authors>
     <Company>GIBS</Company>
